@@ -1,4 +1,4 @@
-from SSGA_batched_local import BatchSSGA_LS
+from ssma.SSMA_batched_local import BatchSSMA
 from grid import sum_avg_dist
 from util import load_experiments_from_folder
 import torch
@@ -67,7 +67,7 @@ for i, exp in enumerate(experiments):
         actual_batch_size,
     )
 
-    optimizer = BatchSSGA_LS(
+    optimizer = BatchSSMA(
         actual_batch_size,
         grid_size,
         vector_size,
@@ -116,7 +116,7 @@ for i, exp in enumerate(experiments):
         actual_batch_size,
     )
 
-    optimizer = BatchSSGA_LS(
+    optimizer = BatchSSMA(
         actual_batch_size,
         grid_size,
         vector_size,

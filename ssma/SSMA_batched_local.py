@@ -3,9 +3,9 @@ import torch
 from util import BatchLogger
 from tqdm import tqdm
 
-class BatchSSGA_LS:
+class BatchSSMA:
     """
-    Implements a batched Steady-State Genetic Algorithm (SSGA) with optional local search.
+    Implements a batched Steady-State Genetic Algorithm (SSMA) with optional local search.
     Supports both Baldwinian and Lamarckian evolution strategies.
     """
 
@@ -26,7 +26,7 @@ class BatchSSGA_LS:
         save_frequency=1000,
     ):
         """
-        Initialize the batched SSGA with local search.
+        Initialize the batched SSMA with local search.
 
         Args:
             batch_size (int): Number of experiments in the batch.
@@ -92,7 +92,7 @@ class BatchSSGA_LS:
             self.logger = BatchLogger(
                 batchsize=batch_size,
                 paths=[
-                    "SSGA_LS_log_"
+                    "SSMA_LS_log_"
                     + time.strftime("%Y%m%d-%H%M%S")
                     + "b_"
                     + str(i)
@@ -286,7 +286,7 @@ class BatchSSGA_LS:
 
     def step(self):
         """
-        Perform a single SSGA step: selection, crossover, mutation, local search, and replacement.
+        Perform a single SSMA step: selection, crossover, mutation, local search, and replacement.
         """
         worstidx = torch.argmax(self.fitness, axis=1)
         bestidx = torch.argmin(self.fitness, axis=1)
@@ -321,7 +321,7 @@ class BatchSSGA_LS:
 
     def optimize(self, steps):
         """
-        Run the SSGA optimization for a given number of steps.
+        Run the SSMA optimization for a given number of steps.
 
         Args:
             steps (int): Number of optimization steps.
