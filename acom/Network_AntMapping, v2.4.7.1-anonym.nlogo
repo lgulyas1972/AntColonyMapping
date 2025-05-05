@@ -1,46 +1,3 @@
-; PROGRAMMING:
-; TODO: Grid: Shrink Node size according to number-of-nodes
-; TODO: Implement Stochastic -- This is version 1.3 -- Stochastic
-;
-; TODO: No hard-coded thresholds, but majority (at least for put-down), except for empty
-; TODO: Stochastics or other change, to make sure, 1-color, low-density situations are also sorted.
-;
-; LONG-TERM:
-; TODO: IDEA: Changing threshold-in-time (increasing to freeze)
-
-; TODO: Plot Spatial Entropy
-;      https://www.rdocumentation.org/packages/SpatEntropy/versions/2.0-1/topics/SpatEntropy
-;      Not very usable, needs piles, 1 color (Gutowitz): https://www.journalagent.com/itujfa/pdfs/ITUJFA-83703-THEORY_ARTICLES-EKINOGLU.pdf
-;      -- MOST IMPORTANTLY, it needs a spatial grid on the net
-;      Important, but not available in PDF: https://link.springer.com/article/10.1007/s10651-017-0383-1
-;      Old, but base (maybe): https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1538-4632.1974.tb01014.x
-;
-;      In fact, what we would like to measure is the 'minimisation of cluster boundaries' (i.e., links that connect different color nodes).
-;      WHAT IS THE THEORETICAL MINIMUM, in case of N nodes, M agents and K colors? Let's assume equal amounts of colors, and also same amount of empty cells.
-;      Thus, food-density = number-of-colors * number-of-nodes / (number-of-colors + 1).
-;      Draft calculations (approximate) for a grid topology:
-;      Probably, a sub-square setup is optimal (PROOF?):
-;      +--+--+
-;      |  |  |
-;      +--+--+
-;      |  |  |
-;      +--+--+
-;
-;      Here
-;           #cells = N^2,
-;           #boundary-cells = 4 * (4 * N/2) = 8N,
-;           #inside-sub-squares = (N/2 - 2)^2 = N^2/4 - 2N + 4
-;
-;           Do basic experiments with plotting the above as a function of N.
-;           Then as a percentage/ratio of N^2 (the number of nodes).
-;
-;      Is this optimal? A circle would minimalize the boundary of a cluster, but here we need tiling.
-
-
-; TODO: Plot #hops = (tick * num-agents), #carries (#hops-while-carrying, #acts, avg-length-of-carry), #times-an-item-was-carried (would be nice, not supported by implementation)
-
-; CONTRIBUTIONS of would-be-paper on Info TAB!!!!
-
 breed [nodes node]
 breed [workers worker]
 breed [solutions solution]
@@ -456,6 +413,8 @@ end
 to go-as-mapping [ n neighbor-nodes]
   ; We use cache now: ask n [ calc-avg-local-distances ]
   let status-quo [avg-local-distances] of n
+  ; to-debug TURN OFF CACHING
+  set status-quo calc-distances-from ([vector] of n) neighbor-nodes
   let alternative calc-distances-from carry neighbor-nodes
 
   let test alternative < status-quo
@@ -492,8 +451,31 @@ end
 to go
   ask workers with [is-active? = true] [
     let n one-of nodes-here
-    let neighbor-nodes [link-neighbors] of n
+    let neighbor-nodes turtle-set n
 
+    let nn neighbor-nodes
+    let new-nodes []
+    repeat neighbor-distance [
+      ask nn [
+        let neighs link-neighbors with [not member? self neighbor-nodes]
+        set new-nodes (turtle-set new-nodes neighs)
+        set neighbor-nodes (turtle-set neighbor-nodes neighs)
+      ]
+      set nn new-nodes
+      set new-nodes []
+    ]
+
+    ; removing n from the list
+    ask n [
+      set neighbor-nodes other neighbor-nodes
+    ]
+
+    ; DEBUG
+    ;print n
+    ;print neighbor-nodes
+    ;print [who] of      neighbor-nodes
+    ;ask n [set color blue]
+    ;ask neighbor-nodes [set color red]
 
     ifelse (model-version = "Schelling") [
       go-as-schelling n neighbor-nodes
@@ -1179,6 +1161,7 @@ to run-SSGA
     ]
   ]
 
+  reset-timer
   create-solutions (num-GA-solutions - 1) [
     hide-turtle
     init-solution
@@ -1228,6 +1211,7 @@ to run-SSGA
     if GA-plot? [ plot best-score ]
   ]
 
+  set wall-clock timer
   ; restore the original parameter value (it is changed for negative values that has a special meaning: dependence on vdim)
   set p-mutation p-mut
 end
@@ -1250,6 +1234,9 @@ to copy-best
 end
 
 to copy-orig
+  ; This is needed to work for re-initialising ant-algorithms as well (not only SSGA)
+  offload-rapidly
+
   ask nodes [
     set vector item who original-mapping
     set is-empty? item who original-empty-state
@@ -1394,7 +1381,7 @@ number-of-nodes
 number-of-nodes
 9
 1024
-1024.0
+256.0
 1
 1
 NIL
@@ -1409,7 +1396,7 @@ number-of-workers
 number-of-workers
 1
 250
-20.0
+43.0
 1
 1
 NIL
@@ -1439,7 +1426,7 @@ number-of-colors
 number-of-colors
 1
 10
-1.0
+10.0
 1
 1
 NIL
@@ -1799,9 +1786,9 @@ SLIDER
 565
 vdim
 vdim
-10
+3
 100
-3.0
+50.0
 1
 1
 NIL
@@ -2387,7 +2374,7 @@ BUTTON
 128
 643
 go-for-period
-repeat num-iterations-at-eval [go]
+set original-mapping map [i -> [vector] of i] (sort-on [who] nodes)\nset original-empty-state  map [i -> [is-empty?] of i] (sort-on [who] nodes)\n\nrepeat num-iterations-at-eval [go]
 NIL
 1
 T
@@ -2514,7 +2501,7 @@ SWITCH
 415
 592
 580
-626
+625
 null-vector-in-middle
 null-vector-in-middle
 0
@@ -2525,139 +2512,41 @@ SWITCH
 415
 625
 537
-659
+658
 equal-swaps
 equal-swaps
 0
 1
 -1000
 
+MONITOR
+1240
+598
+1329
+643
+GA wall-clock 
+wall-clock
+3
+1
+11
+
+SLIDER
+28
+679
+201
+712
+neighbor-distance
+neighbor-distance
+1
+10
+1.0
+1
+1
+NIL
+HORIZONTAL
+
 @#$#@#$#@
-## Version History
-
-**v2.0** (SS)GA Added
-**v2.1** Permutation cross-over added
-**v2.2** In (SS)GA, the original mapping is always added as a 'seed' to the optimisation.
-**v2.3** Plotting of (SS)GA is now optional. Offloading of ants 'at the end' added.
-     Proper handling of empty nodes and carrying ants. Coloring of ants fixed.
-**v2.4** 'Gentle offloading' implemented.
-**v2.4.1** Caching of avg-local-distances implemented. (Makes slight performance improvements and is more suitable for the 'budgeting argumentation'.) Export-vectors, export-network,
-save-the-world and load-the-world added. Automated saving of world state after setup in behaviorspace experiments added. BUGFIX: After completion of offloading, all workers are 
-set back to active, to allow possible continuation.
-
-**v2.4.2** Implement re-runs with SSGA iteration 1.000.000
-       Timer value (run-time -- for ants) recorded for eval as wall-clock
-       Score-before-offload recorded
-       Re-runs of the same problem for another 10 times added.
-**v2.4.2.1** Starting point added and indexing problem fixed (x+1), both with re-run with GA1m.
-**v2.4.3** Option (button) to add all-red vectors. Option (button) to add 3 (sharp) colors is also added. Max of N changed to 1024.
-**v2.4.4** Option to mid-Run change to #workers introduced.
-**v2.4.5** Several updates:
-* Option to purely random swapping introduced.
-* Functionality to check if a solution conforms to the original problem is added. (Note that for this, saving of the original problem is needen at the end of setup, but also at all-red and all-3-colors.)
-* Domain of parameter 'p-mutation' is extended to -0.05, with special interpretation for values < 0. In that case, the value is reset to 1/N at the start of the SSGA.
-* Tools to analyse the initial problem (histogram of distances, the correct number (?) of minimal distances, 'averaged', etc.) added. Currently, it takes into account empty cells as well. There was another version that did not.
-* BUGFIX: all-red, 3-colors, copy-orig (for GA), etc. Cached local distances are no properly initialized after these calls.
-* BUGFIX: is-empty? states of nodes now properly set/restored after copy-orig and copy-best. (These are only important if ant experiments are carried out afterwards.)
-**v2.4.5.1** Bugfix version
-* BUGFIX: The 10x procedure was previously modified to continue a run. This was set back to the original, general version. (And thus FIXED.)
-* BUGFIX: The gentle offloading procedure occasionally tried to 'forced-putdown' an inactive agent. Therefore, forced-putdown now checks if the given ant is active.
-**v2.4.5.2** Bugfix version
-* BUGFIX: The gentle offloading procedure still had a problem: since it picked the next carrying agent before executing the 'gentle period', it could happen that the agent was already empty by the time it was sent to 'forced-putdown'. This could create in-consistencies. In particular, white spots in empty locations, but it was, perhaps, also the cause of the bug that was circumvented (checked for) in v2.4.5.1.
-**v2.4.6** Null-vector in the middle option added. 
-* The null-vector (empty location) is now optionally in the middle of the hipercube (and not at [0 0 0 0 0 ... 0]. This may help with the dependence on D. Also, it may help at hight densities.
-* BUGFIX: In the implementation of swapping the color of the put-down object is no longer re-calculated. Instead, the exact value of what was carried is put down (if not empty). This is not only more efficient, but also gets rid of a bug when using all-red with null-vector-in-middle option.
-* An option to use <= instead of < when deciding if to swap is also added. This may help with all-red or high densities??
-* BUGFIX: in procedures 'all-red' and 'all-3-colors' now vsize is used instead of a burned-in, fix 255. Also, these procedures were adapted to work properly when the null-vector is in the middle. (I.e., they do not call create-null-vector anymore, since that may not produce an all-0 vector. Theoretically, that does not quite impact the results, but certainly the coloring.)
-* In the procedure to do x10 extra runs, when the user-selected output file exists: it now extends the name with an appropriate counter, instead of deleting it.
-**v2.4.6.1:** The interpretation of negative values for the *p-mutation* parameter is changed. It now allows to make the probability of mutation dependent on the *dimensionality* of the feature vectors (i.e., 'vdim'). The absolute values of the parameter equals the *expected number of mutations* ***per vector***. That is, the used mutation probability in this case is '-1 * p-mutation / vdim'.
-**v2.4.6.2:** The interpretation of negative values for the "p-mutation" parameter is changed again. The interpretation introduced in v2.4.6.1 (previous version) was wrong. Technically, it worked, but scaling the probability of mutation with D (vdim) does not have the intended effect. Nonetheless, that interpretation is also kept for backward compatibility reasons. However, a new interpretation is also introduced that scales the probability of mutation with N (number-of-nodes). 
-Now the interpretation of p-mutation values is the following:
-* p-mutation in [0, 1): the probability of mutation per gene is as given.
-* p-mutation < 0: the probability of mutation per gene is: -1 * p-mutation / vdim
-* p-mutation >= 1: the probability of mutation per gene is:  p-mutation / (number-of-nodes * 1000).
-Note: that this last case has the effect that *the expected number of mutations per ***solution candidate*** (of the SSGA, of course) is p-mutation (the original value)*.
-Note2: Given the formulation, the resolution of the probability of mutation in the third case is 1/1000.
-
-## TO PROCESS
-
-* Create new GitHub project and upload.
-
-
-## EXPERIMENTS TO DO
-
-* Rerun GA with 1m
-
-* Rerun with quick offloading (d=0.95)
-
-* Experiment with different distance functions.
-
-* Compare to purely random improvements.
-
-
-## TODO (PROGRAMMING)
-
-* Set RNG Seed + Setup -- does not generate the same condiguration, if the number of workers is different (depends on the ordering of things). Perhaps, it should/could be changed.
-
- 
-* Looks like for N=1000, we have 11*11 nodes, instead of 10*10
-
-
-* Revise carry-hops and other statistics.
-
-* Record RNG seed
-
-* Correct two drop-downs to select model style
-
-* Setup-Nodes for vsize < 3, and better coloring for vsize > 3.
-
-* Consolidate model (remove non-working methods). Remove unused plots and stats. 
-
-* **LONG TERM:** **_Non-Discrete Version_**. I.e., mapping to continuous 2D space, without networks.
-
-
-### Notes: 
-
-* The 'original-mapping' is really, the list of original vectors. (Could/Should be called 'original-vectors', albeit being a list, it is also a mapping between the index and the Nth vector.)
-
-* Forced Swap: in the current implementation, we swap for the best option, independent of the current location being empty or not.
-
-
-
-## Observations
-
-* Ant/Swarm intelligence solution: *easy to scale* & *graceful degradation*
-
-* Note on *BUDGET*: #avg-local-distances calculations.
-
-
-* The d=1.0 case may be problematic, as it could be hard to start. That is, when the grid is full, swapping a vector to (0,0,0) is very likely to INCREASE the local distance.
-
-* Low densities may also be problematic. Probably because of the large patch of empty cells.
-	* Ants cannot improve these by putting anything 'in the middle'. Thus, they are spending a lot of their time effectively inactive.
-	* 
-
-
-* *The GA does _not_ depend on topology!!*
-
-* On different networks:
-
-	* SW1D: seems to work
-	* SpatiallyClustered: seems to work
-	* RndNet: slower, underperforming?
-	* Grid4: low performance
-	* BA: low performance
-
-* #400: underperform? However, continuing with GA does not seem to improve. ?? However, Ants are *slow* anyhow.
-
-
-
-
-* **To Research:** Random / Monte-Carlo Gradient Optimisation. Is there such a thing? We are doing kind of that.
-
-
-
- (
+# Information removed to make the code anonymised
 @#$#@#$#@
 default
 true

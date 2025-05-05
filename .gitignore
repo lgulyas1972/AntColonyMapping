@@ -1,0 +1,4 @@
+.venv
+
+ssga/logs/
+*/__pycache__
