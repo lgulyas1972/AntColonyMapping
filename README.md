@@ -10,7 +10,7 @@ The SSMA baseline's GPU implementation is based on Python 3.10 and PyTorch 2.1.0
 
 ## Data
 
-The NetLogo generated data files are available in the `data/acom` directory. The baseline SSMA data files can be generated using the source code provided in the `ssga` directory.
+The NetLogo generated data files are available in the `data/acom` directory. The baseline SSMA data files can be generated using the source code provided in the `ssma` directory.
 
 ## Publication
 
