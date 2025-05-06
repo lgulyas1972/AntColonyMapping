@@ -6,7 +6,7 @@ This is the source code for the Ant Colony Mapping (ACOM) algorithm, mapping fea
 
 The ACOM code is implemented in the NetLogo (6.2.0) framework available at [NetLogo](https://ccl.northwestern.edu/netlogo/).
 
-The SSGA baseline's GPU implementation is based on Python 3.10 and PyTorch 2.1.0 (with CUDA 11.8). The code was tested on Windows 11, but no OS-specific restrictions are expected.
+The SSMA baseline's GPU implementation is based on Python 3.10 and PyTorch 2.1.0 (with CUDA 11.8). The code was tested on Windows 11, but no OS-specific restrictions are expected.
 
 ## Data
 
